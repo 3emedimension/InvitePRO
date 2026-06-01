@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+{% block title %}InvitePro — {% if inv %}Modifier{% else %}Créer{% endif %} une invitation{% endblock %}
+
+{% block head %}
+<style>
+  .page { padding: 48px 0 80px; }
+  .page-header { margin-bottom: 36px; }
+  .page-header h2 { font-family: var(--font-display); font-size: 2.2rem; font-weight: 400; }
+  .page-header h2 span { color: var(--accent); }
+  .page-header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  .form-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 780px) { .form-layout { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .card-title-sm {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--accent); margin-bottom: 20px;
+  }
+  .form-group { margin-bottom: 18px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+
+  label {
+    display: block; font-size: 12px; font-weight: 500; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em; margin-bottom: 7px;
+  }
+  .label-opt { color: var(--muted); font-weight: 400; font-style: italic; text-transform: none; font-size: 11px; }
+
+  input[type="text"], input[type="date"], input[type="time"],
+  input[type="url"], select, textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 11px 14px;
+    font-family: var(--font-body); font-size: 15px; transition: border-color .2s; outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+  textarea { resize: vertical; min-height: 90px; }
+
+  /* Event type with custom */
+  .type-row { display: flex; gap: 10px; }
+  .type-row select { flex: 1; }
+  #custom-type-wrap { flex: 1; display: none; }
+  #custom-type-wrap.show { display: block; }
+
+  /* Color */
+  .color-row { display: flex; gap: 10px; align-items: center; }
+  input[type="color"] {
+    width: 44px; height: 44px; padding: 3px; border-radius: 8px;
+    cursor: pointer; background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0;
+  }
+  .color-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .swatch {
+    width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: transform .15s, border-color .15s;
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.active { border-color: white; }
+
+  /* Upload */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 24px;
+    text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .upload-zone:hover { border-color: var(--accent); background: rgba(201,184,122,.04); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .upload-icon { font-size: 1.8rem; margin-bottom: 6px; }
+  .upload-zone p { font-size: 13px; color: var(--muted); }
+  .upload-zone strong { color: var(--accent); }
+  #img-preview { max-width: 100%; max-height: 140px; border-radius: 8px; margin-top: 10px; display: none; object-fit: cover; }
+
+  /* Style cards */
+  .style-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .style-option { position: relative; }
+  .style-option input { position: absolute; opacity: 0; }
+  .style-label {
+    display: block; padding: 12px 10px; border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer; transition: border-color .2s, background .2s;
+    text-align: center; font-size: 13px;
+  }
+  .style-label .style-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+  .style-option input:checked + .style-label {
+    border-color: var(--accent); background: rgba(201,184,122,.08); color: var(--accent);
+  }
+
+  /* Preview */
+  .preview-wrap { position: sticky; top: 80px; }
+  .preview-card { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .preview-banner { height: 6px; transition: background .3s; }
+  .preview-body { padding: 20px; }
+  .preview-type { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+  .preview-title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .preview-organizer { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+  .preview-meta { font-size: 13px; color: var(--muted); line-height: 1.9; }
+  .preview-hint { font-size: 12px; color: var(--muted); text-align: center; padding: 12px; border-top: 1px solid var(--border); }
+
+  /* Style preview overlay */
+  .preview-style-badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 100px;
+    background: rgba(255,255,255,.06); color: var(--muted);
+    display: inline-block; margin-top: 8px;
+  }
+
+  .submit-row { display: flex; gap: 12px; align-items: center; margin-top: 4px; }
+  .btn-full { padding: 13px 28px; font-size: 15px; }
+
+  /* Optional section toggle */
+  .section-toggle {
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    color: var(--muted); font-size: 13px; margin-bottom: 16px;
+    user-select: none;
+  }
+  .section-toggle:hover { color: var(--text); }
+  .toggle-arrow { transition: transform .2s; font-size: 10px; }
+  .toggle-arrow.open { transform: rotate(90deg); }
+  .optional-fields { display: none; }
+  .optional-fields.open { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container page">
+  <div class="page-header">
+    <h2>{% if inv %}Modifier l'<span>invitation</span>{% else %}Créer une <span>invitation</span>{% endif %}</h2>
+    <p>{% if inv %}Mettez à jour les informations de votre invitation.{% else %}Remplissez les détails de votre événement.{% endif %}</p>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    <div class="form-layout">
+      <!-- Left -->
+      <div>
+        <!-- Infos principales -->
+        <div class="card">
+          <div class="card-title-sm">Informations principales</div>
+
+          <div class="form-group">
+            <label>Type d'événement</label>
+            <div class="type-row">
+              <select name="event_type_select" id="event-type-select">
+                {% set types = ['Anniversaire','Mariage','Soirée','Fête','Repas','Tournoi','Réunion','Concert','Exposition','Cérémonie','Baby shower','Autre…'] %}
+                {% for t in types %}
+                <option value="{{ t }}"
+                  {% if inv %}
+                    {% if inv.event_type == t %}selected{% endif %}
+                    {% if t == 'Autre…' and inv.event_type not in types[:-1] %}selected{% endif %}
+                  {% endif %}>{{ t }}</option>
+                {% endfor %}
+              </select>
+              <div id="custom-type-wrap" {% if inv and inv.event_type not in ['Anniversaire','Mariage','Soirée','Fête','Repas','Tournoi','Réunion','Concert','Exposition','Cérémonie','Baby shower'] %}class="show"{% endif %}>
+                <input type="text" id="custom-type-input" placeholder="Précisez le type…"
+                  value="{{ inv.event_type if inv and inv.event_type not in ['Anniversaire','Mariage','Soirée','Fête','Repas','Tournoi','Réunion','Concert','Exposition','Cérémonie','Baby shower'] else '' }}">
+              </div>
+            </div>
+            <input type="hidden" name="event_type" id="event-type-hidden"
+              value="{{ inv.event_type if inv else 'Anniversaire' }}">
+          </div>
+
+          <div class="form-group">
+            <label>Titre de l'invitation</label>
+            <input type="text" name="title" id="f-title" placeholder="Les 30 ans de Marie…" required value="{{ inv.title if inv else '' }}">
+          </div>
+
+          <div class="form-group">
+            <label>Organisateur / Nom</label>
+            <input type="text" name="organizer" id="f-organizer" placeholder="Marie Dupont" required value="{{ inv.organizer if inv else '' }}">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="event_date" id="f-date" required value="{{ inv.event_date if inv else '' }}">
+            </div>
+            <div class="form-group">
+              <label>Heure</label>
+              <input type="time" name="event_time" id="f-time" required value="{{ inv.event_time if inv else '' }}">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Lieu</label>
+            <input type="text" name="location" id="f-location" placeholder="12 Rue des Lilas, Paris" required value="{{ inv.location if inv else '' }}">
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" id="f-desc" placeholder="Venez fêter avec nous ce moment unique…">{{ inv.description if inv else '' }}</textarea>
+          </div>
+        </div>
+
+        <!-- Informations optionnelles -->
+        <div class="card">
+          <div class="section-toggle" id="opt-toggle">
+            <span class="toggle-arrow" id="opt-arrow">▶</span>
+            <span>Informations supplémentaires <span style="color:var(--accent);font-size:11px">(optionnelles)</span></span>
+          </div>
+          <div class="optional-fields {% if inv and (inv.dress_code or inv.rsvp_contact or inv.rsvp_date or inv.website or inv.special_msg or inv.parking or inv.gift_info) %}open{% endif %}" id="opt-fields">
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Code vestimentaire <span class="label-opt">optionnel</span></label>
+                <input type="text" name="dress_code" placeholder="Tenue de soirée, déguisement…" value="{{ inv.dress_code if inv and inv.dress_code else '' }}">
+              </div>
+              <div class="form-group">
+                <label>Parking / Accès <span class="label-opt">optionnel</span></label>
+                <input type="text" name="parking" placeholder="Parking gratuit sur place…" value="{{ inv.parking if inv and inv.parking else '' }}">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>RSVP — Contact <span class="label-opt">optionnel</span></label>
+                <input type="text" name="rsvp_contact" placeholder="06 12 34 56 78 ou email…" value="{{ inv.rsvp_contact if inv and inv.rsvp_contact else '' }}">
+              </div>
+              <div class="form-group">
+                <label>RSVP — Avant le <span class="label-opt">optionnel</span></label>
+                <input type="date" name="rsvp_date" value="{{ inv.rsvp_date if inv and inv.rsvp_date else '' }}">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Site web / Lien <span class="label-opt">optionnel</span></label>
+              <input type="url" name="website" placeholder="https://…" value="{{ inv.website if inv and inv.website else '' }}">
+            </div>
+
+            <div class="form-group">
+              <label>Infos cadeaux <span class="label-opt">optionnel</span></label>
+              <input type="text" name="gift_info" placeholder="Liste de naissance, pas de cadeaux…" value="{{ inv.gift_info if inv and inv.gift_info else '' }}">
+            </div>
+
+            <div class="form-group">
+              <label>Message spécial <span class="label-opt">optionnel</span></label>
+              <textarea name="special_msg" placeholder="Un mot particulier pour vos invités…" style="min-height:70px">{{ inv.special_msg if inv and inv.special_msg else '' }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="preview-wrap">
+        <!-- Image -->
+        <div class="card">
+          <div class="card-title-sm">Image / Logo</div>
+          <div class="upload-zone" id="drop-zone">
+            <input type="file" name="image" accept="image/*" id="img-input">
+            <div class="upload-icon">🖼</div>
+            <p><strong>Cliquez</strong> ou glissez une image</p>
+            <p style="font-size:12px;margin-top:4px">PNG, JPG, WebP — max 5 Mo</p>
+            {% if inv and inv.image_file %}
+            <img id="img-preview" src="{{ url_for('uploaded_file', filename=inv.image_file) }}" style="display:block">
+            {% else %}
+            <img id="img-preview">
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Couleur -->
+        <div class="card">
+          <div class="card-title-sm">Couleur principale</div>
+          <div class="color-row">
+            <input type="color" name="color" id="f-color" value="{{ inv.color if inv else '#6C63FF' }}">
+            <div class="color-swatches">
+              {% for sw in ['#6C63FF','#c9b87a','#e07070','#70c89a','#70a8e0','#e08870','#b070e0','#e0c070','#ff6b9d','#00c9a7'] %}
+              <div class="swatch" style="background:{{ sw }}" data-color="{{ sw }}" onclick="setColor('{{ sw }}')"></div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Style -->
+        <div class="card">
+          <div class="card-title-sm">Style visuel</div>
+          <div class="style-grid">
+            {% set styles = [('elegant','✦','Élégant'),('festive','🎉','Festif'),('minimal','◻','Minimal'),('romantic','❤','Romantique'),('modern','◈','Moderne'),('nature','🌿','Nature')] %}
+            {% for val, icon, label in styles %}
+            <div class="style-option">
+              <input type="radio" name="style" value="{{ val }}" id="s-{{ val }}"
+                {% if inv and inv.style == val %}checked{% elif not inv and val == 'elegant' %}checked{% endif %}
+                onchange="updateStylePreview('{{ val }}')">
+              <label for="s-{{ val }}" class="style-label">
+                <span class="style-icon">{{ icon }}</span>{{ label }}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Aperçu -->
+        <div class="card">
+          <div class="card-title-sm">Aperçu</div>
+          <div class="preview-card" id="prev-card">
+            <div class="preview-banner" id="prev-banner" style="background: {{ inv.color if inv else '#6C63FF' }}"></div>
+            <div class="preview-body" id="prev-body">
+              <div class="preview-type" id="prev-type">{{ inv.event_type if inv else 'Anniversaire' }}</div>
+              <div class="preview-title" id="prev-title">{{ inv.title if inv else "Titre de l'invitation" }}</div>
+              <div class="preview-organizer" id="prev-org">{{ inv.organizer if inv else 'Organisateur' }}</div>
+              <div class="preview-meta">
+                <div id="prev-date">📅 {{ inv.event_date if inv else '—' }}</div>
+                <div id="prev-time">🕐 {{ inv.event_time if inv else '—' }}</div>
+                <div id="prev-loc">📍 {{ inv.location if inv else '—' }}</div>
+              </div>
+              <div class="preview-style-badge" id="prev-style-badge">✦ Élégant</div>
+            </div>
+            <div class="preview-hint">Aperçu en temps réel</div>
+          </div>
+        </div>
+
+        <div class="submit-row">
+          <button type="submit" class="btn btn-primary btn-full">
+            {% if inv %}Enregistrer{% else %}Créer l'invitation →{% endif %}
+          </button>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Annuler</a>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+// ── Type d'événement avec champ libre ──────────────────────────────────────
+const typeSelect = document.getElementById('event-type-select');
+const customWrap = document.getElementById('custom-type-wrap');
+const customInput = document.getElementById('custom-type-input');
+const hiddenType  = document.getElementById('event-type-hidden');
+
+function syncType() {
+  if (typeSelect.value === 'Autre…') {
+    customWrap.classList.add('show');
+    hiddenType.value = customInput.value || 'Autre';
+    document.getElementById('prev-type').textContent = customInput.value || 'Autre';
+  } else {
+    customWrap.classList.remove('show');
+    hiddenType.value = typeSelect.value;
+    document.getElementById('prev-type').textContent = typeSelect.value;
+  }
+}
+typeSelect.addEventListener('change', syncType);
+customInput.addEventListener('input', syncType);
+syncType();
+
+// ── Live preview ───────────────────────────────────────────────────────────
+const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('input', fn); };
+bind('f-title',    e => document.getElementById('prev-title').textContent = e.target.value || "Titre de l'invitation");
+bind('f-organizer',e => document.getElementById('prev-org').textContent   = e.target.value || 'Organisateur');
+bind('f-date',     e => document.getElementById('prev-date').textContent   = '📅 ' + (e.target.value || '—'));
+bind('f-time',     e => document.getElementById('prev-time').textContent   = '🕐 ' + (e.target.value || '—'));
+bind('f-location', e => document.getElementById('prev-loc').textContent    = '📍 ' + (e.target.value || '—'));
+bind('f-color',    e => { document.getElementById('prev-banner').style.background = e.target.value; });
+
+// ── Style preview ──────────────────────────────────────────────────────────
+const styleConfig = {
+  elegant:  { badge: '✦ Élégant',    bg: '#15151c', text: '#e8e6e0' },
+  festive:  { badge: '🎉 Festif',    bg: '#120a20', text: '#f0ebff' },
+  minimal:  { badge: '◻ Minimal',   bg: '#f0ede8', text: '#1a1a1a' },
+  romantic: { badge: '❤ Romantique', bg: '#1a0a10', text: '#ffe8ee' },
+  modern:   { badge: '◈ Moderne',   bg: '#080812', text: '#e0e8ff' },
+  nature:   { badge: '🌿 Nature',   bg: '#081008', text: '#e0f0e0' },
+};
+function updateStylePreview(val) {
+  const cfg = styleConfig[val] || styleConfig.elegant;
+  const body = document.getElementById('prev-body');
+  body.style.background = cfg.bg;
+  body.style.color = cfg.text;
+  document.getElementById('prev-style-badge').textContent = cfg.badge;
+}
+const checkedStyle = document.querySelector('input[name="style"]:checked');
+if (checkedStyle) updateStylePreview(checkedStyle.value);
+
+// ── Color swatches ─────────────────────────────────────────────────────────
+function setColor(c) {
+  document.getElementById('f-color').value = c;
+  document.getElementById('prev-banner').style.background = c;
+  document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.dataset.color === c));
+}
+document.querySelectorAll('.swatch').forEach(s => {
+  s.classList.toggle('active', s.dataset.color === document.getElementById('f-color').value);
+});
+
+// ── Image preview ──────────────────────────────────────────────────────────
+document.getElementById('img-input').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { const img = document.getElementById('img-preview'); img.src = e.target.result; img.style.display = 'block'; };
+  reader.readAsDataURL(file);
+});
+const zone = document.getElementById('drop-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = 'var(--accent)'; });
+zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.style.borderColor = '';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const dt = new DataTransfer(); dt.items.add(file);
+    document.getElementById('img-input').files = dt.files;
+    const reader = new FileReader();
+    reader.onload = ev => { const img = document.getElementById('img-preview'); img.src = ev.target.result; img.style.display = 'block'; };
+    reader.readAsDataURL(file);
+  }
+});
+
+// ── Optional fields toggle ─────────────────────────────────────────────────
+document.getElementById('opt-toggle').addEventListener('click', () => {
+  const fields = document.getElementById('opt-fields');
+  const arrow  = document.getElementById('opt-arrow');
+  fields.classList.toggle('open');
+  arrow.classList.toggle('open');
+});
+if (document.getElementById('opt-fields').classList.contains('open')) {
+  document.getElementById('opt-arrow').classList.add('open');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}InvitePro — Accès{% endblock %}
+
+{% block head %}
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+  .login-wrap {
+    width: 100%;
+    max-width: 400px;
+    padding: 24px;
+    animation: fadeUp .5s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .login-logo {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .login-logo h1 {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: .02em;
+  }
+  .login-logo h1 span { color: var(--text); font-weight: 300; }
+  .login-logo p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 6px;
+    font-weight: 300;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px;
+  }
+
+  .form-group { margin-bottom: 20px; }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 8px;
+  }
+  input[type="password"], input[type="text"], input[type="date"],
+  input[type="time"], input[type="color"], select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 11px 14px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    transition: border-color .2s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+  input::placeholder, textarea::placeholder { color: var(--muted); }
+
+  .error-msg {
+    background: rgba(224,112,112,.12);
+    border: 1px solid rgba(224,112,112,.3);
+    color: var(--danger);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+
+  .btn-full { width: 100%; justify-content: center; padding: 13px; font-size: 15px; }
+
+  .deco {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(120px);
+    opacity: .12;
+  }
+  .deco-1 { background: var(--accent); top: -200px; right: -200px; }
+  .deco-2 { background: #7c6cff; bottom: -200px; left: -200px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="deco deco-1"></div>
+<div class="deco deco-2"></div>
+<div class="login-wrap">
+  <div class="login-logo">
+    <h1>Invite<span>Pro</span></h1>
+    <p>Créateur d'invitations</p>
+  </div>
+  <div class="card">
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+    <form method="post">
+      <div class="form-group">
+        <label>Mot de passe</label>
+        <input type="password" name="password" placeholder="Entrez le mot de passe…" autofocus required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Accéder →</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

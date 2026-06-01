@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: invitepro
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: INVITEPRO_PASSWORD
+        value: invite2024
+      - key: SECRET_KEY
+        generateValue: true

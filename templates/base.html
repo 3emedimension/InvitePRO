@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}InvitePro{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d11;
+      --surface:  #15151c;
+      --surface2: #1d1d27;
+      --border:   rgba(255,255,255,.07);
+      --accent:   #c9b87a;
+      --accent2:  #e8d9a8;
+      --text:     #e8e6e0;
+      --muted:    #8a8790;
+      --danger:   #e07070;
+      --success:  #70c89a;
+      --radius:   14px;
+      --font-display: 'Cormorant Garamond', serif;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent2); }
+
+    /* Nav */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13,13,17,.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: .03em;
+    }
+    .nav-brand span { color: var(--text); font-weight: 300; }
+    .nav-links { display: flex; gap: 8px; align-items: center; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all .2s ease;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0d0d11;
+    }
+    .btn-primary:hover { background: var(--accent2); color: #0d0d11; transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+    .btn-danger {
+      background: rgba(224,112,112,.15);
+      color: var(--danger);
+      border: 1px solid rgba(224,112,112,.25);
+    }
+    .btn-danger:hover { background: rgba(224,112,112,.25); }
+    .btn-sm { padding: 6px 14px; font-size: 13px; }
+
+    /* Flashes */
+    .flash-container { padding: 12px 32px 0; }
+    .flash {
+      padding: 12px 18px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .flash.success { background: rgba(112,200,154,.12); border: 1px solid rgba(112,200,154,.3); color: var(--success); }
+    .flash.info    { background: rgba(100,140,200,.12); border: 1px solid rgba(100,140,200,.3); color: #88aadd; }
+    .flash.error   { background: rgba(224,112,112,.12); border: 1px solid rgba(224,112,112,.3); color: var(--danger); }
+
+    /* Main wrapper */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% if session.authenticated %}
+  <nav>
+    <div class="nav-brand">Invite<span>Pro</span></div>
+    <div class="nav-links">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">Tableau de bord</a>
+      <a href="{{ url_for('create') }}" class="btn btn-primary btn-sm">+ Créer</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Déconnexion</a>
+    </div>
+  </nav>
+  {% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+      {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</body>
+</html>

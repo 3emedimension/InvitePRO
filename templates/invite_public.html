@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ inv.title }} — Invitation</title>
+  <meta property="og:title" content="{{ inv.title }}">
+  <meta property="og:description" content="{{ inv.description[:120] if inv.description else inv.event_type ~ ' le ' ~ inv.event_date }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    {% set c = inv.color %}
+    :root {
+      --accent: {{ c }};
+      --font-display: 'Cormorant Garamond', serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    /* ── Per-style theming ── */
+    {% if inv.style == 'minimal' %}
+    :root { --bg: #f4f2ee; --surface: #ffffff; --border: rgba(0,0,0,.09); --text: #1a1814; --muted: #888; }
+    {% elif inv.style == 'festive' %}
+    :root { --bg: #09071a; --surface: #110e2a; --border: rgba(255,255,255,.08); --text: #f0ebff; --muted: #9988cc; }
+    {% elif inv.style == 'romantic' %}
+    :root { --bg: #120709; --surface: #1c0c10; --border: rgba(255,180,180,.08); --text: #ffe8ee; --muted: #cc8899; }
+    {% elif inv.style == 'nature' %}
+    :root { --bg: #060e07; --surface: #0c160d; --border: rgba(120,200,120,.08); --text: #e0f0e0; --muted: #78aa80; }
+    {% elif inv.style == 'modern' %}
+    :root { --bg: #050510; --surface: #0c0c20; --border: rgba(100,120,255,.1); --text: #e0e8ff; --muted: #7080bb; }
+    {% else %}
+    :root { --bg: #0d0d11; --surface: #15151c; --border: rgba(255,255,255,.07); --text: #e8e6e0; --muted: #8a8790; }
+    {% endif %}
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Decorative background ── */
+    .bg-deco {
+      position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+    }
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(120px); pointer-events: none;
+    }
+    .blob-1 { width: 600px; height: 600px; background: var(--accent); opacity: .07; top: -200px; right: -200px; }
+    .blob-2 { width: 500px; height: 500px; background: var(--accent); opacity: .04; bottom: -200px; left: -150px; }
+
+    {% if inv.style == 'festive' %}
+    /* Confetti dots */
+    .bg-deco::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(circle, var(--accent) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,200,100,.4) 1px, transparent 1px),
+        radial-gradient(circle, rgba(200,100,255,.3) 1px, transparent 1px);
+      background-size: 60px 60px, 80px 80px, 100px 100px;
+      background-position: 0 0, 30px 30px, 15px 50px;
+      opacity: .15;
+    }
+    {% elif inv.style == 'romantic' %}
+    .bg-deco::before {
+      content: '❤ ♡ ❤ ♡ ❤ ♡ ❤ ♡ ❤ ♡ ❤ ♡ ❤ ♡ ❤ ♡';
+      position: absolute; top: 20px; left: 0; right: 0;
+      font-size: 18px; opacity: .06; letter-spacing: 20px;
+      white-space: nowrap; overflow: hidden;
+    }
+    {% elif inv.style == 'nature' %}
+    .bg-deco::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(ellipse 2px 8px at 50% 50%, rgba(100,200,100,.2) 100%, transparent 100%);
+      background-size: 40px 40px;
+      opacity: .3;
+    }
+    {% elif inv.style == 'modern' %}
+    .bg-deco::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(90deg, var(--border) 1px, transparent 1px) 0 0 / 60px 60px,
+        linear-gradient(0deg,  var(--border) 1px, transparent 1px) 0 0 / 60px 60px;
+    }
+    {% endif %}
+
+    /* ── Main layout ── */
+    .invite-outer {
+      max-width: 600px; margin: 0 auto;
+      padding: 40px 20px 60px;
+      position: relative; z-index: 1;
+      animation: rise .6s ease both;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Card ── */
+    .invite-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      overflow: hidden;
+      {% if inv.style == 'minimal' %}
+      box-shadow: 0 4px 60px rgba(0,0,0,.10);
+      {% else %}
+      box-shadow: 0 0 80px rgba(0,0,0,.4);
+      {% endif %}
+    }
+
+    /* Top color bar — thicker, uses accent everywhere */
+    .card-stripe {
+      height: 8px;
+      background: var(--accent);
+    }
+    {% if inv.style == 'festive' %}
+    .card-stripe {
+      background: linear-gradient(90deg, var(--accent), #ff6bcb, #ffca28, var(--accent));
+      background-size: 200%;
+      animation: shimmer 3s linear infinite;
+    }
+    @keyframes shimmer { to { background-position: 200% center; } }
+    {% endif %}
+
+    /* Cover image */
+    .card-cover { width: 100%; max-height: 300px; object-fit: cover; display: block; }
+
+    /* Header */
+    .card-header {
+      padding: 36px 36px 24px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    {% if inv.style == 'elegant' %}
+    .card-header::before {
+      content: '— ✦ —';
+      display: block; font-size: 14px; letter-spacing: .3em;
+      color: var(--accent); opacity: .5; margin-bottom: 16px;
+    }
+    {% endif %}
+
+    .event-pill {
+      display: inline-block;
+      font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+      padding: 5px 18px; border-radius: 100px;
+      border: 1.5px solid var(--accent); color: var(--accent);
+      margin-bottom: 18px;
+    }
+    .invite-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 7vw, 3rem);
+      font-weight: 600; line-height: 1.1;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .invite-organizer {
+      font-family: var(--font-display);
+      font-size: 1.1rem; font-weight: 300; font-style: italic;
+      color: var(--muted);
+    }
+
+    /* Details */
+    .card-details { padding: 24px 36px; }
+    .detail-row {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-icon {
+      font-size: 1rem; width: 36px; height: 36px; border-radius: 8px;
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .detail-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 2px; }
+    .detail-value { font-size: 15px; color: var(--text); }
+    .detail-value a { color: var(--accent); }
+
+    /* Description */
+    .card-desc {
+      padding: 4px 36px 24px;
+      font-family: var(--font-display); font-size: 1.05rem; font-style: italic;
+      color: var(--muted); line-height: 1.75;
+      border-bottom: 1px solid var(--border);
+    }
+    .desc-quote { font-size: 2.8rem; color: var(--accent); opacity: .35; line-height: .5; display: block; margin-bottom: 8px; }
+
+    /* Special message */
+    .card-special {
+      margin: 0 36px 24px;
+      padding: 18px 22px;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+      font-family: var(--font-display); font-size: 1rem; font-style: italic;
+      color: var(--text); line-height: 1.6;
+    }
+
+    /* Footer */
+    .card-footer {
+      padding: 20px 36px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .footer-brand { font-size: 12px; color: var(--muted); letter-spacing: .05em; }
+    .footer-brand strong { color: var(--accent); font-weight: 500; }
+    .footer-divider { display: inline-block; margin: 0 8px; opacity: .4; }
+
+    @media (max-width: 480px) {
+      .card-header, .card-details, .card-desc, .card-footer, .card-special { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-deco">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+</div>
+
+<div class="invite-outer">
+  <div class="invite-card">
+    <div class="card-stripe"></div>
+
+    {% if inv.image_file %}
+    <img class="card-cover" src="{{ url_for('uploaded_file', filename=inv.image_file) }}" alt="{{ inv.title }}">
+    {% endif %}
+
+    <div class="card-header">
+      <div class="event-pill">{{ inv.event_type }}</div>
+      <h1 class="invite-title">{{ inv.title }}</h1>
+      <p class="invite-organizer">par {{ inv.organizer }}</p>
+    </div>
+
+    <div class="card-details">
+      <div class="detail-row">
+        <div class="detail-icon">📅</div>
+        <div><div class="detail-label">Date</div><div class="detail-value">{{ inv.event_date }}</div></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-icon">🕐</div>
+        <div><div class="detail-label">Heure</div><div class="detail-value">{{ inv.event_time }}</div></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-icon">📍</div>
+        <div><div class="detail-label">Lieu</div><div class="detail-value">{{ inv.location }}</div></div>
+      </div>
+
+      {% if inv.dress_code %}
+      <div class="detail-row">
+        <div class="detail-icon">👔</div>
+        <div><div class="detail-label">Tenue</div><div class="detail-value">{{ inv.dress_code }}</div></div>
+      </div>
+      {% endif %}
+
+      {% if inv.parking %}
+      <div class="detail-row">
+        <div class="detail-icon">🅿</div>
+        <div><div class="detail-label">Accès / Parking</div><div class="detail-value">{{ inv.parking }}</div></div>
+      </div>
+      {% endif %}
+
+      {% if inv.rsvp_contact or inv.rsvp_date %}
+      <div class="detail-row">
+        <div class="detail-icon">✉</div>
+        <div>
+          <div class="detail-label">RSVP</div>
+          <div class="detail-value">
+            {% if inv.rsvp_contact %}{{ inv.rsvp_contact }}{% endif %}
+            {% if inv.rsvp_contact and inv.rsvp_date %} — {% endif %}
+            {% if inv.rsvp_date %}avant le {{ inv.rsvp_date }}{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if inv.gift_info %}
+      <div class="detail-row">
+        <div class="detail-icon">🎁</div>
+        <div><div class="detail-label">Cadeaux</div><div class="detail-value">{{ inv.gift_info }}</div></div>
+      </div>
+      {% endif %}
+
+      {% if inv.website %}
+      <div class="detail-row">
+        <div class="detail-icon">🔗</div>
+        <div><div class="detail-label">Site web</div><div class="detail-value"><a href="{{ inv.website }}" target="_blank">{{ inv.website }}</a></div></div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if inv.description %}
+    <div class="card-desc">
+      <span class="desc-quote">"</span>{{ inv.description }}
+    </div>
+    {% endif %}
+
+    {% if inv.special_msg %}
+    <div class="card-special">{{ inv.special_msg }}</div>
+    {% endif %}
+
+    <div class="card-footer">
+      <div class="footer-brand">
+        Créé avec <strong>InvitePro</strong>
+        <span class="footer-divider">·</span>
+        {{ inv.event_type }}
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
