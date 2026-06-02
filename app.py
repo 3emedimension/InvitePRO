@@ -1,6 +1,8 @@
 import os
 import uuid
-from datetime import datetime
+import hashlib
+import secrets
+from datetime import datetime, timedelta
 from functools import wraps
 
 import cloudinary
@@ -9,12 +11,14 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, flash, abort, jsonify
+    session, flash, abort, jsonify, make_response
 )
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "invitepro-secret-key-change-in-production")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 
+SITE_PASSWORD      = os.environ.get("SITE_PASSWORD", "IP2026")
 DATABASE_URL       = os.environ.get("DATABASE_URL")
 MAX_CONTENT_LENGTH = 5 * 1024 * 1024
 ALLOWED_EXT        = {"png", "jpg", "jpeg", "gif", "webp", "svg"}
@@ -82,9 +86,7 @@ def init_db():
 
 init_db()
 
-# ── Auth helpers ──────────────────────────────────────────────────────────────
-import hashlib, secrets
-
+# ── Password helpers ──────────────────────────────────────────────────────────
 def hash_password(password, salt=None):
     if salt is None:
         salt = secrets.token_hex(16)
@@ -95,9 +97,22 @@ def check_password(stored, provided):
     salt, _ = stored.split(":", 1)
     return stored == hash_password(provided, salt)
 
-def login_required(f):
+# ── Auth decorators ───────────────────────────────────────────────────────────
+def site_access_required(f):
+    """Vérifie le mot de passe d'accès au site (cookie)."""
     @wraps(f)
     def decorated(*args, **kwargs):
+        if not request.cookies.get("site_access") == SITE_PASSWORD:
+            return redirect(url_for("site_gate", next=request.path))
+        return f(*args, **kwargs)
+    return decorated
+
+def login_required(f):
+    """Vérifie que l'utilisateur est connecté (session)."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not request.cookies.get("site_access") == SITE_PASSWORD:
+            return redirect(url_for("site_gate"))
         if not session.get("user_id"):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
@@ -151,8 +166,29 @@ def collect_form(old_url=None, old_pub_id=None):
         "gift_info":    request.form.get("gift_info") or None,
     }
 
-# ── Auth routes ───────────────────────────────────────────────────────────────
+# ── Route : portail d'accès au site ──────────────────────────────────────────
+@app.route("/gate", methods=["GET", "POST"])
+def site_gate():
+    # Déjà autorisé
+    if request.cookies.get("site_access") == SITE_PASSWORD:
+        return redirect(request.args.get("next") or url_for("login"))
+    error = None
+    if request.method == "POST":
+        if request.form.get("password") == SITE_PASSWORD:
+            next_url = request.form.get("next") or url_for("login")
+            resp = make_response(redirect(next_url))
+            resp.set_cookie(
+                "site_access", SITE_PASSWORD,
+                max_age=60 * 60 * 24 * 365,  # 1 an
+                httponly=True, samesite="Lax"
+            )
+            return resp
+        error = "Mot de passe incorrect."
+    return render_template("gate.html", error=error, next=request.args.get("next", ""))
+
+# ── Routes auth compte ────────────────────────────────────────────────────────
 @app.route("/", methods=["GET", "POST"])
+@site_access_required
 def login():
     if session.get("user_id"):
         return redirect(url_for("dashboard"))
@@ -165,6 +201,7 @@ def login():
                 cur.execute("SELECT * FROM users WHERE username=%s", (username,))
                 user = cur.fetchone()
         if user and check_password(user["password_hash"], password):
+            session.permanent = True
             session["user_id"]      = user["id"]
             session["display_name"] = user["display_name"]
             return redirect(url_for("dashboard"))
@@ -172,6 +209,7 @@ def login():
     return render_template("login.html", error=error, mode="login")
 
 @app.route("/register", methods=["GET", "POST"])
+@site_access_required
 def register():
     if session.get("user_id"):
         return redirect(url_for("dashboard"))
@@ -323,7 +361,6 @@ def rsvp(token):
             inv = cur.fetchone()
             if not inv:
                 abort(404)
-            # Évite les doublons par nom (insensible à la casse)
             cur.execute("SELECT id FROM rsvps WHERE invitation_id=%s AND LOWER(name)=%s", (inv["id"], name.lower()))
             if cur.fetchone():
                 return jsonify({"error": "Tu as déjà confirmé ta présence !"}), 409
