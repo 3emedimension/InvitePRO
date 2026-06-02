@@ -116,14 +116,21 @@ def allowed_file(filename):
 def upload_image(file_storage, old_pub_id=None):
     if not file_storage or not file_storage.filename or not allowed_file(file_storage.filename):
         return None, None
-    if old_pub_id:
-        try: cloudinary.uploader.destroy(old_pub_id)
-        except: pass
-    result = cloudinary.uploader.upload(
-        file_storage, folder="invitepro",
-        transformation=[{"width": 1200, "height": 600, "crop": "limit", "quality": "auto"}],
-    )
-    return result["secure_url"], result["public_id"]
+    try:
+        if old_pub_id:
+            try: cloudinary.uploader.destroy(old_pub_id)
+            except: pass
+        file_storage.seek(0)
+        result = cloudinary.uploader.upload(
+            file_storage,
+            folder="invitepro",
+            resource_type="image",
+            transformation=[{"width": 1200, "height": 600, "crop": "limit", "quality": "auto:good"}],
+        )
+        return result["secure_url"], result["public_id"]
+    except Exception as e:
+        app.logger.error(f"Cloudinary upload error: {e}")
+        return None, None
 
 def delete_image(pub_id):
     if pub_id:
