@@ -22,7 +22,6 @@ SITE_PASSWORD      = os.environ.get("SITE_PASSWORD", "IP2026")
 DATABASE_URL       = os.environ.get("DATABASE_URL")
 MAX_CONTENT_LENGTH = 5 * 1024 * 1024
 ALLOWED_EXT        = {"png", "jpg", "jpeg", "gif", "webp", "svg"}
-
 app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
 cloudinary.config(
@@ -86,7 +85,7 @@ def init_db():
 
 init_db()
 
-# ── Password helpers ──────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 def hash_password(password, salt=None):
     if salt is None:
         salt = secrets.token_hex(16)
@@ -97,24 +96,16 @@ def check_password(stored, provided):
     salt, _ = stored.split(":", 1)
     return stored == hash_password(provided, salt)
 
-# ── Auth decorators ───────────────────────────────────────────────────────────
-def site_access_required(f):
-    """Vérifie le mot de passe d'accès au site (cookie)."""
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not request.cookies.get("site_access") == SITE_PASSWORD:
-            return redirect(url_for("site_gate", next=request.path))
-        return f(*args, **kwargs)
-    return decorated
+def site_ok():
+    return request.cookies.get("site_ok") == "1"
 
 def login_required(f):
-    """Vérifie que l'utilisateur est connecté (session)."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not request.cookies.get("site_access") == SITE_PASSWORD:
-            return redirect(url_for("site_gate"))
+        if not site_ok():
+            return redirect(url_for("index"))
         if not session.get("user_id"):
-            return redirect(url_for("login"))
+            return redirect(url_for("index"))
         return f(*args, **kwargs)
     return decorated
 
@@ -166,86 +157,86 @@ def collect_form(old_url=None, old_pub_id=None):
         "gift_info":    request.form.get("gift_info") or None,
     }
 
-# ── Route : portail d'accès au site ──────────────────────────────────────────
-@app.route("/gate", methods=["GET", "POST"])
-def site_gate():
-    # Déjà autorisé
-    if request.cookies.get("site_access") == SITE_PASSWORD:
-        return redirect(request.args.get("next") or url_for("login"))
-    error = None
-    if request.method == "POST":
-        if request.form.get("password") == SITE_PASSWORD:
-            next_url = request.form.get("next") or url_for("login")
-            resp = make_response(redirect(next_url))
-            resp.set_cookie(
-                "site_access", SITE_PASSWORD,
-                max_age=60 * 60 * 24 * 365,  # 1 an
-                httponly=True, samesite="Lax"
-            )
-            return resp
-        error = "Mot de passe incorrect."
-    return render_template("gate.html", error=error, next=request.args.get("next", ""))
-
-# ── Routes auth compte ────────────────────────────────────────────────────────
+# ── Route principale : étape 1 = mdp site, étape 2 = compte ──────────────────
 @app.route("/", methods=["GET", "POST"])
-@site_access_required
-def login():
-    if session.get("user_id"):
+def index():
+    # Déjà connecté → dashboard
+    if site_ok() and session.get("user_id"):
         return redirect(url_for("dashboard"))
-    error = None
-    if request.method == "POST":
-        username = request.form.get("username", "").strip().lower()
-        password = request.form.get("password", "")
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT * FROM users WHERE username=%s", (username,))
-                user = cur.fetchone()
-        if user and check_password(user["password_hash"], password):
-            session.permanent = True
-            session["user_id"]      = user["id"]
-            session["display_name"] = user["display_name"]
-            return redirect(url_for("dashboard"))
-        error = "Identifiant ou mot de passe incorrect."
-    return render_template("login.html", error=error, mode="login")
 
-@app.route("/register", methods=["GET", "POST"])
-@site_access_required
-def register():
-    if session.get("user_id"):
-        return redirect(url_for("dashboard"))
-    error = None
+    error_gate = None
+    error_login = None
+    error_register = None
+    mode = request.form.get("mode", "login")  # login ou register
+
     if request.method == "POST":
-        username     = request.form.get("username", "").strip().lower()
-        display_name = request.form.get("display_name", "").strip()
-        password     = request.form.get("password", "")
-        password2    = request.form.get("password2", "")
-        if not username or not display_name or not password:
-            error = "Tous les champs sont obligatoires."
-        elif len(username) < 3:
-            error = "L'identifiant doit faire au moins 3 caractères."
-        elif len(password) < 6:
-            error = "Le mot de passe doit faire au moins 6 caractères."
-        elif password != password2:
-            error = "Les mots de passe ne correspondent pas."
-        else:
-            try:
-                with get_db() as conn:
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                            INSERT INTO users (username, display_name, password_hash, created_at)
-                            VALUES (%s, %s, %s, %s)
-                        """, (username, display_name, hash_password(password), datetime.now().isoformat(timespec="seconds")))
-                    conn.commit()
-                flash("Compte créé ! Connecte-toi.", "success")
-                return redirect(url_for("login"))
-            except psycopg2.errors.UniqueViolation:
-                error = "Cet identifiant est déjà utilisé."
-    return render_template("login.html", error=error, mode="register")
+        action = request.form.get("action")
+
+        # ── Étape 1 : validation mot de passe site ──
+        if action == "gate":
+            if request.form.get("site_password") == SITE_PASSWORD:
+                resp = make_response(redirect(url_for("index")))
+                resp.set_cookie("site_ok", "1", max_age=60*60*24*365, httponly=True, samesite="Lax")
+                return resp
+            error_gate = "Mot de passe incorrect."
+
+        # ── Étape 2 : connexion compte ──
+        elif action == "login" and site_ok():
+            username = request.form.get("username", "").strip().lower()
+            password = request.form.get("password", "")
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM users WHERE username=%s", (username,))
+                    user = cur.fetchone()
+            if user and check_password(user["password_hash"], password):
+                session.permanent = True
+                session["user_id"]      = user["id"]
+                session["display_name"] = user["display_name"]
+                return redirect(url_for("dashboard"))
+            error_login = "Identifiant ou mot de passe incorrect."
+            mode = "login"
+
+        # ── Étape 2 : création compte ──
+        elif action == "register" and site_ok():
+            username     = request.form.get("username", "").strip().lower()
+            display_name = request.form.get("display_name", "").strip()
+            password     = request.form.get("password", "")
+            password2    = request.form.get("password2", "")
+            if not username or not display_name or not password:
+                error_register = "Tous les champs sont obligatoires."
+            elif len(username) < 3:
+                error_register = "L'identifiant doit faire au moins 3 caractères."
+            elif len(password) < 6:
+                error_register = "Le mot de passe doit faire au moins 6 caractères."
+            elif password != password2:
+                error_register = "Les mots de passe ne correspondent pas."
+            else:
+                try:
+                    with get_db() as conn:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO users (username, display_name, password_hash, created_at)
+                                VALUES (%s, %s, %s, %s)
+                            """, (username, display_name, hash_password(password), datetime.now().isoformat(timespec="seconds")))
+                        conn.commit()
+                    flash("Compte créé ! Connecte-toi.", "success")
+                    return redirect(url_for("index"))
+                except psycopg2.errors.UniqueViolation:
+                    error_register = "Cet identifiant est déjà utilisé."
+            mode = "register"
+
+    return render_template("login.html",
+        site_unlocked=site_ok(),
+        error_gate=error_gate,
+        error_login=error_login,
+        error_register=error_register,
+        mode=mode,
+    )
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return redirect(url_for("index"))
 
 # ── App routes ────────────────────────────────────────────────────────────────
 @app.route("/dashboard")
@@ -337,7 +328,6 @@ def delete(token):
     flash("Invitation supprimée.", "info")
     return redirect(url_for("dashboard"))
 
-# ── Page publique + RSVP ──────────────────────────────────────────────────────
 @app.route("/i/<token>")
 def public_invite(token):
     with get_db() as conn:
