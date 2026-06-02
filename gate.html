@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}InvitePro — Accès{% endblock %}
+
+{% block head %}
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 380px; padding: 24px; animation: fadeUp .5s ease; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .logo { text-align: center; margin-bottom: 32px; }
+  .logo h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 600; color: var(--accent); }
+  .logo h1 span { color: var(--text); font-weight: 300; }
+  .logo p { color: var(--muted); font-size: 13px; margin-top: 6px; letter-spacing: .05em; text-transform: uppercase; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px; }
+  .card h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 400; margin-bottom: 6px; }
+  .card p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .form-group { margin-bottom: 18px; }
+  label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 7px; }
+  input[type="password"] {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 11px 14px;
+    font-family: var(--font-body); font-size: 15px; transition: border-color .2s; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+  .error { background: rgba(224,112,112,.12); border: 1px solid rgba(224,112,112,.3); color: var(--danger); padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 18px; }
+  .btn-full { width: 100%; justify-content: center; padding: 13px; font-size: 15px; }
+  .deco { position: fixed; width: 500px; height: 500px; border-radius: 50%; pointer-events: none; filter: blur(120px); opacity: .1; }
+  .deco-1 { background: var(--accent); top: -180px; right: -180px; }
+  .deco-2 { background: #7c6cff; bottom: -180px; left: -150px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="deco deco-1"></div>
+<div class="deco deco-2"></div>
+<div class="wrap">
+  <div class="logo">
+    <h1>Invite<span>Pro</span></h1>
+    <p>Créateur d'invitations</p>
+  </div>
+  <div class="card">
+    <h2>Accès privé</h2>
+    <p>Ce site est protégé. Entre le mot de passe pour continuer.</p>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="post">
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="form-group">
+        <label>Mot de passe</label>
+        <input type="password" name="password" placeholder="••••••••" autofocus required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Entrer →</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
