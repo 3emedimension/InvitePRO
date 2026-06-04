@@ -257,8 +257,8 @@
             <div class="upload-icon">🖼</div>
             <p><strong>Cliquez</strong> ou glissez une image</p>
             <p style="font-size:12px;margin-top:4px">PNG, JPG, WebP — max 5 Mo</p>
-            {% if inv and inv.image_file %}
-            <img id="img-preview" src="{{ url_for('uploaded_file', filename=inv.image_file) }}" style="display:block">
+            {% if inv and inv['image_url'] %}
+            <img id="img-preview" src="{{ inv['image_url'] }}" style="display:block">
             {% else %}
             <img id="img-preview">
             {% endif %}
@@ -313,6 +313,27 @@
               <div class="preview-style-badge" id="prev-style-badge">✦ Élégant</div>
             </div>
             <div class="preview-hint">Aperçu en temps réel</div>
+          </div>
+        </div>
+
+        <!-- Statut -->
+        <div class="card">
+          <div class="card-title-sm">Statut de l'invitation</div>
+          <div class="style-grid" style="grid-template-columns:1fr 1fr">
+            <div class="style-option">
+              <input type="radio" name="status" value="published" id="st-pub"
+                {% if not inv or inv['status'] == 'published' %}checked{% endif %}>
+              <label for="st-pub" class="style-label">
+                <span class="style-icon">✓</span>Publié
+              </label>
+            </div>
+            <div class="style-option">
+              <input type="radio" name="status" value="draft" id="st-draft"
+                {% if inv and inv['status'] == 'draft' %}checked{% endif %}>
+              <label for="st-draft" class="style-label">
+                <span class="style-icon">◎</span>Brouillon
+              </label>
+            </div>
           </div>
         </div>
 
