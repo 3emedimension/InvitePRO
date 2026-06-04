@@ -1,145 +1,54 @@
 {% extends "base.html" %}
-{% block title %}InvitePro — Tableau de bord{% endblock %}
+{% block title %}InvitePro — Dashboard{% endblock %}
 
 {% block head %}
 <style>
-  .page { padding: 48px 0 80px; }
-
-  .page-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-bottom: 40px;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .page-header h2 {
-    font-family: var(--font-display);
-    font-size: 2.4rem;
-    font-weight: 400;
-    color: var(--text);
-  }
+  .page { padding: 40px 0 80px; }
+  .page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 32px; gap: 16px; flex-wrap: wrap; }
+  .page-header h2 { font-family: var(--font-display); font-size: 2.2rem; font-weight: 400; }
   .page-header h2 span { color: var(--accent); }
-  .page-header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
 
-  /* Stats */
-  .stats { display: flex; gap: 16px; margin-bottom: 40px; flex-wrap: wrap; }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 24px;
-    flex: 1;
-    min-width: 140px;
-  }
-  .stat-value {
-    font-family: var(--font-display);
-    font-size: 2.2rem;
-    font-weight: 600;
-    color: var(--accent);
-    line-height: 1;
-  }
-  .stat-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-top: 6px; }
+  /* Stats globales */
+  .stats-bar { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-bottom: 32px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .stat-value { font-family: var(--font-display); font-size: 2rem; font-weight: 600; color: var(--accent); line-height: 1; }
+  .stat-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin-top: 5px; }
 
   /* Grid */
-  .invite-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-  }
+  .invite-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+  .invite-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform .2s, border-color .2s; animation: fadeIn .4s ease both; }
+  .invite-card:hover { transform: translateY(-2px); border-color: rgba(201,184,122,.2); }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-  .invite-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    transition: transform .2s, border-color .2s;
-    animation: fadeIn .4s ease both;
-  }
-  .invite-card:hover { transform: translateY(-3px); border-color: rgba(201,184,122,.2); }
+  .card-banner { height: 6px; }
+  .card-img { width: 100%; height: 130px; object-fit: cover; display: block; }
+  .card-body { padding: 18px; }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .event-badge { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; background: rgba(201,184,122,.1); color: var(--accent); border: 1px solid rgba(201,184,122,.2); }
+  .status-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 100px; cursor: pointer; transition: opacity .2s; }
+  .status-published { background: rgba(112,200,154,.1); color: #70c89a; border: 1px solid rgba(112,200,154,.25); }
+  .status-draft { background: rgba(180,180,180,.1); color: var(--muted); border: 1px solid var(--border); }
 
-  .card-banner {
-    height: 8px;
-  }
-  .card-img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    display: block;
-  }
-  .card-body { padding: 20px; }
-  .event-badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 100px;
-    margin-bottom: 10px;
-    background: rgba(201,184,122,.12);
-    color: var(--accent);
-    border: 1px solid rgba(201,184,122,.2);
-  }
-  .card-title {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .card-organizer {
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 14px;
-  }
-  .card-meta {
-    display: flex;
-    gap: 14px;
-    font-size: 12px;
-    color: var(--muted);
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-  .card-meta span::before { margin-right: 4px; }
-  .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .card-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; color: var(--text); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-organizer { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+  .card-meta { display: flex; gap: 12px; font-size: 12px; color: var(--muted); margin-bottom: 14px; flex-wrap: wrap; }
 
-  /* Empty state */
-  .empty {
-    text-align: center;
-    padding: 80px 24px;
-    color: var(--muted);
-    grid-column: 1/-1;
-  }
-  .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: .4; }
-  .empty h3 { font-family: var(--font-display); font-size: 1.5rem; color: var(--text); margin-bottom: 8px; }
-  .empty p { font-size: 14px; margin-bottom: 24px; }
+  /* Mini stats */
+  .card-mini-stats { display: flex; gap: 8px; margin-bottom: 14px; }
+  .mini-stat { flex: 1; background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; text-align: center; }
+  .mini-stat-val { font-size: 1.1rem; font-weight: 600; color: var(--accent); font-family: var(--font-display); }
+  .mini-stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
 
-  /* Copy toast */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(60px);
-    background: var(--success);
-    color: #0d0d11;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 12px 24px;
-    border-radius: 100px;
-    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
-    pointer-events: none;
-    z-index: 999;
-    white-space: nowrap;
-  }
+  .card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Empty */
+  .empty { text-align: center; padding: 70px 24px; color: var(--muted); grid-column: 1/-1; }
+  .empty-icon { font-size: 2.8rem; margin-bottom: 14px; opacity: .35; }
+  .empty h3 { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: 8px; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--success); color: #0d0d11; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 100px; transition: transform .3s cubic-bezier(.34,1.56,.64,1); pointer-events: none; z-index: 999; white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
 </style>
 {% endblock %}
@@ -149,59 +58,89 @@
   <div class="page-header">
     <div>
       <h2>Mes <span>invitations</span></h2>
-      <p>Gérez et partagez vos créations</p>
+      <p style="color:var(--muted);font-size:14px;margin-top:4px">Gérez et partagez vos créations</p>
     </div>
     <a href="{{ url_for('create') }}" class="btn btn-primary">+ Nouvelle invitation</a>
   </div>
 
-  <!-- Stats -->
-  <div class="stats">
+  <!-- Stats globales -->
+  <div class="stats-bar">
     <div class="stat-card">
       <div class="stat-value">{{ invitations|length }}</div>
       <div class="stat-label">Invitations</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value">{{ invitations|selectattr('event_type')|list|length }}</div>
-      <div class="stat-label">Évènements actifs</div>
+      <div class="stat-value">{{ stats.total_views or 0 }}</div>
+      <div class="stat-label">Vues totales</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value">∞</div>
-      <div class="stat-label">Liens partagés</div>
+      <div class="stat-value">{{ rsvp_stats.total_rsvps or 0 }}</div>
+      <div class="stat-label">Présents confirmés</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">
+        {% if stats.total_views and stats.total_views > 0 %}
+          {{ ((rsvp_stats.total_rsvps or 0) / stats.total_views * 100)|round|int }}%
+        {% else %}—{% endif %}
+      </div>
+      <div class="stat-label">Taux de réponse</div>
     </div>
   </div>
 
-  <!-- Grid -->
+  <!-- Grille -->
   <div class="invite-grid">
     {% if not invitations %}
     <div class="empty">
       <div class="empty-icon">✉</div>
       <h3>Aucune invitation</h3>
-      <p>Créez votre première invitation en quelques secondes.</p>
+      <p style="margin-bottom:20px">Créez votre première invitation en quelques secondes.</p>
       <a href="{{ url_for('create') }}" class="btn btn-primary">Créer une invitation</a>
     </div>
     {% endif %}
 
     {% for inv in invitations %}
-    <div class="invite-card" style="animation-delay: {{ loop.index0 * 0.06 }}s">
-      <div class="card-banner" style="background: {{ inv.color }}"></div>
-      {% if inv.image_file %}
-      <img class="card-img" src="{{ url_for('uploaded_file', filename=inv.image_file) }}" alt="">
-      {% endif %}
+    <div class="invite-card" style="animation-delay:{{ loop.index0 * 0.05 }}s" id="card-{{ inv.token }}">
+      <div class="card-banner" style="background:{{ inv.color }}"></div>
+      {% if inv.image_url %}<img class="card-img" src="{{ inv.image_url }}" alt="">{% endif %}
       <div class="card-body">
-        <div class="event-badge">{{ inv.event_type }}</div>
+        <div class="card-top">
+          <div class="event-badge">{{ inv.event_type }}</div>
+          <div class="status-badge status-{{ inv.status }}" id="status-{{ inv.token }}"
+            onclick="toggleStatus('{{ inv.token }}')" title="Cliquer pour changer">
+            {% if inv.status == 'published' %}✓ Publié{% else %}◎ Brouillon{% endif %}
+          </div>
+        </div>
         <div class="card-title">{{ inv.title }}</div>
         <div class="card-organizer">{{ inv.organizer }}</div>
         <div class="card-meta">
           <span>📅 {{ inv.event_date }}</span>
           <span>🕐 {{ inv.event_time }}</span>
-          <span>📍 {{ inv.location[:24] }}{% if inv.location|length > 24 %}…{% endif %}</span>
+          <span>📍 {{ inv.location[:22] }}{% if inv.location|length > 22 %}…{% endif %}</span>
+        </div>
+        <div class="card-mini-stats">
+          <div class="mini-stat">
+            <div class="mini-stat-val">{{ inv.views or 0 }}</div>
+            <div class="mini-stat-lbl">Vues</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-val">{{ inv.rsvp_count }}</div>
+            <div class="mini-stat-lbl">Présents</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-val">
+              {% if inv.views and inv.views > 0 %}{{ (inv.rsvp_count / inv.views * 100)|round|int }}%{% else %}—{% endif %}
+            </div>
+            <div class="mini-stat-lbl">Taux</div>
+          </div>
         </div>
         <div class="card-actions">
           <a href="{{ url_for('public_invite', token=inv.token) }}" target="_blank" class="btn btn-ghost btn-sm">Voir</a>
-          <button class="btn btn-ghost btn-sm" onclick="copyLink('{{ request.host_url }}i/{{ inv.token }}')">Copier le lien</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyLink('{{ request.host_url }}i/{{ inv.token }}')">🔗 Lien</button>
+          <a href="https://wa.me/?text={{ (inv.title + ' — ' + request.host_url + 'i/' + inv.token)|urlencode }}" target="_blank" class="btn btn-ghost btn-sm">WhatsApp</a>
+          <a href="{{ url_for('view_rsvps', token=inv.token) }}" class="btn btn-ghost btn-sm">✓ {{ inv.rsvp_count }}</a>
           <a href="{{ url_for('edit', token=inv.token) }}" class="btn btn-ghost btn-sm">Modifier</a>
-          <form method="post" action="{{ url_for('delete', token=inv.token) }}" style="display:inline" onsubmit="return confirm('Supprimer cette invitation ?')">
-            <button type="submit" class="btn btn-danger btn-sm">✕</button>
+          <form method="post" action="{{ url_for('delete', token=inv.token) }}" style="display:inline" onsubmit="return confirm('Supprimer ?')">
+            <button class="btn btn-danger btn-sm">✕</button>
           </form>
         </div>
       </div>
@@ -210,15 +149,24 @@
   </div>
 </div>
 
-<div class="toast" id="toast">✓ Lien copié !</div>
+<div class="toast" id="toast"></div>
 
 <script>
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
 function copyLink(url) {
-  navigator.clipboard.writeText(url).then(() => {
-    const t = document.getElementById('toast');
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2200);
-  });
+  navigator.clipboard.writeText(url).then(() => showToast('✓ Lien copié !'));
+}
+async function toggleStatus(token) {
+  const res  = await fetch(`/toggle-status/${token}`, { method: 'POST' });
+  const data = await res.json();
+  const el   = document.getElementById('status-' + token);
+  el.className = 'status-badge status-' + data.status;
+  el.textContent = data.status === 'published' ? '✓ Publié' : '◎ Brouillon';
+  showToast(data.status === 'published' ? 'Invitation publiée !' : 'Passée en brouillon.');
 }
 </script>
 {% endblock %}
